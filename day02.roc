@@ -25,7 +25,7 @@ part1 = \in ->
     maxRed= 12
     maxGreen = 13
     maxBlue = 14
-    games = toPairs in 
+    games = toPairSets in
 
     gameIdSum = 
         List.walkWithIndex games 0 \sum, sets, idx ->
@@ -44,21 +44,17 @@ part1 = \in ->
                 sum + gameId
     Num.toStr gameIdSum
 
-toPairs = \in, type ->
+toPairSets = \in ->
     sets <- Str.split in "\n" |> List.map (\game -> Str.split game ":") |> List.keepOks getIndex1 |> List.map 
-    colorSets = 
-        colorSet <- Str.split sets ";" |> List.map 
-        countColorPair <- Str.split colorSet "," |> List.map Str.trim |> List.map 
-        countAndColor = Str.split countColorPair " " 
-        when countAndColor is 
-            [count, color] -> 
-                when Str.toU64 count is
-                    Ok num -> (num, color)
-                    Err _ -> crash "Not a number"
-            _ -> crash "Not a count - color pair"
-    when type is 
-        SplitGamesIntoSets -> colorSets
-        TreatSetsAsOneGame -> List.join colorSets
+    colorSet <- Str.split sets ";" |> List.map 
+    countColorPair <- Str.split colorSet "," |> List.map Str.trim |> List.map 
+    countAndColor = Str.split countColorPair " " 
+    when countAndColor is 
+        [count, color] -> 
+            when Str.toU64 count is
+                Ok num -> (num, color)
+                Err _ -> crash "Not a number"
+        _ -> crash "Not a count - color pair"
 
 getIndex1 = \l -> List.get l 1 
 
@@ -74,7 +70,7 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green
 """
 
 part2 = \inpt ->
-    games = toPairs inpt TreatSetsAsOneGame
+    games = toPairs inpt
     mins = (0, 0, 0)
     powers = 
         pairs <- List.map games
@@ -89,5 +85,20 @@ part2 = \inpt ->
 
     gameIdSum = List.sum powers
     Num.toStr gameIdSum
+
+toPairs = \in ->
+    sets <- Str.split in "\n" |> List.map (\game -> Str.split game ":") |> List.keepOks getIndex1 |> List.map 
+    colorSets = 
+        colorSet <- Str.split sets ";" |> List.map 
+        countColorPair <- Str.split colorSet "," |> List.map Str.trim |> List.map 
+        countAndColor = Str.split countColorPair " " 
+        when countAndColor is 
+            [count, color] -> 
+                when Str.toU64 count is
+                    Ok num -> (num, color)
+                    Err _ -> crash "Not a number"
+            _ -> crash "Not a count - color pair"
+    List.join colorSets
+
 
 expect part2 testInput2 == "2286"
