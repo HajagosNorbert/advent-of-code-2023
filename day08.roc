@@ -7,8 +7,8 @@ app "AoC"
 
 main : Task {} *
 main =
-    #printAnswers (part1 testInput1) (part2 testInput2)
-    printAnswers "HI" (part2 input)
+    printAnswers (part1 input) (part2 input)
+    #printAnswers "HI" (part2 testInput2)
 
 printAnswers = \p1, p2 ->
     Stdout.line "part1: $(p1)\npart2: $(p2)"
@@ -37,8 +37,8 @@ testInput2 =
     """
 
 part1 = \in ->
-    dirsAndNodes = parseInput in
-    escapeDesert dirsAndNodes (\node -> node == ['Z', 'Z', 'Z']) |> Num.toStr
+    {dirs, nodes} = parseInput in
+    escapeDesert { dirs, nodes, startNode: "AAA"} (\node -> node == "ZZZ") |> Num.toStr
 
 parseInput = \in ->
     inp = Str.split in "\n\n"
@@ -51,17 +51,17 @@ parseInput = \in ->
         |> List.map
             (\line ->
                 (
-                    List.sublist line { start: 0, len: 3 },
+                    Str.fromUtf8Range line { start: 0, count: 3 } |> unwrap,
                     {
-                        left: List.sublist line { start: 7, len: 3 },
-                        right: List.sublist line { start: 12, len: 3 },
-                    },
+                        left: Str.fromUtf8Range line { start: 7, count: 3 } |> unwrap,
+                        right: Str.fromUtf8Range line { start: 12, count: 3 } |> unwrap,
+                    }
                 ))
         |> Dict.fromList
     {dirs, nodes}
 
-escapeDesert = \{ dirs: dirs0, nodes: nodes0 }, predicate ->
-    escapeDesertHelp {dirs: dirs0, nodes:nodes0, dirIdx: 0, node: ['A', 'A', 'A'], stepCount: 0} predicate
+escapeDesert = \{ dirs: dirs0, nodes: nodes0, startNode}, predicate ->
+    escapeDesertHelp {dirs: dirs0, nodes:nodes0, dirIdx: 0, node: startNode, stepCount: 0} predicate
 
 escapeDesertHelp = \{ dirs, dirIdx, nodes, node, stepCount}, predicate ->
     if predicate node  then
@@ -69,7 +69,6 @@ escapeDesertHelp = \{ dirs, dirIdx, nodes, node, stepCount}, predicate ->
     else
         wrappingDirIdx = dirIdx % List.len dirs 
         currDir = List.get dirs wrappingDirIdx |> unwrap
-        dbg T node
         paths = Dict.get nodes node |> unwrap
         nextNode = when currDir is 
             'L' -> paths.left
@@ -82,35 +81,29 @@ expect
     part1 testInput1 == "6"
 
 part2 = \in ->
-    dirsAndNodes = parseInput in
-    escapeDesertGhost dirsAndNodes |> Num.toStr
+    {dirs, nodes} = parseInput in
+    startNodes = Dict.keys nodes |> List.keepIf \node -> Str.endsWith node "A"
+    steps = List.map startNodes \startNode ->
+        escapeDesert {dirs, nodes, startNode: startNode} \x -> Str.endsWith x "Z"
+    List.walk steps 1 lcd |> Num.toStr
 
-escapeDesertGhost = \{ dirs, nodes} ->
-    startNodes = Dict.keys nodes |> List.keepIf \node -> 
-        a = List.last node 
-        dbg a
-        a |> unwrap == 'A'
-    escapeDesertHelpGhost {dirs, nodes, dirIdx: 0, nodesWalking: startNodes, stepCount: 0} 
 
-escapeDesertHelpGhost = \{ dirs, dirIdx, nodes, nodesWalking, stepCount} ->
-    if List.all nodesWalking (\node -> List.last node |> unwrap == 'Z') then
-        stepCount
+## Greatest Common Divisor with the euclidean algorithm
+gcd = \a, b ->
+    rem = a % b
+    if rem == 0 then
+        b
     else
-        wrappingDirIdx = dirIdx % List.len dirs 
-        currDir = List.get dirs wrappingDirIdx |> unwrap
-        walkOptions = List.map nodesWalking \n->
-            Dict.get nodes n |> unwrap
-        nextNodesWalking = when currDir is 
-            'L' -> List.map walkOptions .left
-            'R'-> List.map walkOptions .right
-            _ -> crash "invalid direction in input"
-        escapeDesertHelpGhost {dirs, dirIdx: wrappingDirIdx + 1, nodes, nodesWalking: nextNodesWalking, stepCount: stepCount + 1}
+        gcd b rem 
 
+## Least Common Denominator
+lcd = \ a, b ->
+    (a // (gcd a b)) * b
 
 
 unwrap = \x ->
     when x is
         Ok elem -> elem
         Err _ -> 
-            dbg x
+            #dbg x
             crash "Unwraped an error!"
