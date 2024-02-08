@@ -8,7 +8,6 @@ app "AoC"
 main : Task {} *
 main =
     printAnswers (part1 input) (part2 input)
-    #printAnswers "HI" (part2 testInput2)
 
 printAnswers = \p1, p2 ->
     Stdout.line "part1: $(p1)\npart2: $(p2)"
