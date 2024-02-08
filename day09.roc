@@ -12,6 +12,46 @@ main =
 printAnswers = \p1, p2 ->
     Stdout.line "part1: $(p1)\npart2: $(p2)"
 
+parseInput = \in ->
+    Str.split in "\n" |> List.map (\x -> Str.split x " " |> List.keepOks Str.toI64)
+
+diffBetween = \l ->
+    hasNonZero = List.any l \x -> x != 0
+    when l is
+        [head, .. as rest] if hasNonZero ->
+            res = List.walk rest { prev: head, newL: List.withCapacity (List.len rest) } \{ newL, prev }, element ->
+                { prev: element, newL: List.append newL (element - prev) }
+            res.newL
+
+        _ -> l
+
+predictNext = \initList ->
+    predictHelp = \l, prediction ->
+        hasNonZero = List.any l \x -> x != 0
+        when l is
+            [.. as head, a] if hasNonZero -> predictHelp (diffBetween l) (prediction + a)
+            _ -> prediction
+
+    predictHelp initList 0
+
+predictPrev = \initList ->
+    predictHelp = \l, prediction, sign ->
+        hasNonZero = List.any l \x -> x != 0
+        when l is
+            [a, .. as rest] if hasNonZero -> predictHelp (diffBetween l) (prediction + a * sign) (-1 * sign)
+            _ -> prediction
+
+    predictHelp initList 0 1
+
+part1 = \in ->
+    inp = parseInput in
+    List.map inp predictNext |> List.sum |> Num.toStr
+
+
+part2 = \in ->
+    inp = parseInput in
+    List.map inp predictPrev |> List.sum |> Num.toStr
+
 testInput1 = "1 3 6 10 15 21"
 testInput2 = "10 13 16 21 30 45"
 testInputFull =
@@ -30,47 +70,6 @@ expect
     res = part1 testInput2
     exp = "68"
     res == exp
-
-parseInput = \in ->
-    Str.split in "\n" |> List.map (\x -> Str.split x " " |> List.keepOks Str.toI64)
-
-part1 = \in ->
-    inp = parseInput in
-    List.map inp predictNext |> List.sum |> Num.toStr
-
-diffBetween = \l ->
-    hasNonZero = List.any l \x -> x != 0
-    when l is
-        [head, .. as rest] if hasNonZero ->
-            res = List.walk rest { prev: head, newL: List.withCapacity (List.len rest) } \{ newL, prev }, element ->
-                { prev: element, newL: List.append newL (element - prev) }
-            res.newL
-
-        _ -> l
-
-predictNext = \initList ->
-    predictHelp = \l, prediction ->
-        hasNonZero = List.any l \x -> x != 0
-        when l is
-            [] -> prediction
-            [.. as head, a] if hasNonZero -> predictHelp (diffBetween l) (prediction + a)
-            _ -> prediction
-
-    predictHelp initList 0
-
-predictPrev = \initList ->
-    predictHelp = \l, prediction, sign ->
-        hasNonZero = List.any l \x -> x != 0
-        when l is
-            [] -> prediction
-            [a, .. as rest] if hasNonZero -> predictHelp (diffBetween l) (prediction + a * sign) (-1 * sign)
-            _ -> prediction
-
-    predictHelp initList 0 1
-
-part2 = \in ->
-    inp = parseInput in
-    List.map inp predictPrev |> List.sum |> Num.toStr
 
 expect
     res = part2 testInput2
