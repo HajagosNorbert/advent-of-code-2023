@@ -14,19 +14,19 @@ printAnswers = \p1, p2 ->
 
 testInput1 = "1 3 6 10 15 21"
 testInput2 = "10 13 16 21 30 45"
-testInputFull = 
+testInputFull =
     """
     0 3 6 9 12 15
     1 3 6 10 15 21
     10 13 16 21 30 45
     """
 
-expect 
+expect
     res = part1 testInput1
     exp = "28"
     res == exp
 
-expect 
+expect
     res = part1 testInput2
     exp = "68"
     res == exp
@@ -39,29 +39,32 @@ part1 = \in ->
     List.map inp predictNext |> List.sum |> Num.toStr
 
 diffBetween = \l ->
+    hasNonZero = List.any l \x -> x != 0
     when l is
-        [] -> []
-        [a] -> []
-        [.., a, b] -> 
-            diffBetween (List.dropLast l 1) |> List.append (b - a)
+        [head, .. as rest] if hasNonZero ->
+            res = List.walk rest { prev: head, newL: List.withCapacity (List.len rest) } \{ newL, prev }, element ->
+                { prev: element, newL: List.append newL (element - prev) }
+            res.newL
+
+        _ -> l
 
 predictNext = \initList ->
-    predictHelp = \l, prediction->
-        hasNonZero = List.any l \x -> x != 0 
+    predictHelp = \l, prediction ->
+        hasNonZero = List.any l \x -> x != 0
         when l is
             [] -> prediction
-            [.. as head, a] if hasNonZero -> predictHelp (diffBetween l) (prediction +a)
-            _ -> prediction 
+            [.. as head, a] if hasNonZero -> predictHelp (diffBetween l) (prediction + a)
+            _ -> prediction
 
     predictHelp initList 0
 
 predictPrev = \initList ->
-    predictHelp = \l, prediction, sign->
-        hasNonZero = List.any l \x -> x != 0 
+    predictHelp = \l, prediction, sign ->
+        hasNonZero = List.any l \x -> x != 0
         when l is
             [] -> prediction
             [a, .. as rest] if hasNonZero -> predictHelp (diffBetween l) (prediction + a * sign) (-1 * sign)
-            _ -> prediction 
+            _ -> prediction
 
     predictHelp initList 0 1
 
@@ -69,15 +72,12 @@ part2 = \in ->
     inp = parseInput in
     List.map inp predictPrev |> List.sum |> Num.toStr
 
-expect 
+expect
     res = part2 testInput2
     exp = "5"
     res == exp
 
-expect 
+expect
     res = part2 testInputFull
     exp = "2"
     res == exp
-
-#1762065988
-#1066
